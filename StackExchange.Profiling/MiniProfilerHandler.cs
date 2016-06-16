@@ -75,7 +75,7 @@ namespace StackExchange.Profiling
                 case "jquery.1.7.1":
                 case "jquery.tmpl":
                 case "list":
-                    output = NotFound(context);
+                    output = Includes(context, path);
                     break;
                 case "includes":
                     output = Includes(context, path);
@@ -98,12 +98,12 @@ namespace StackExchange.Profiling
                     break;
             }
 
-	        if (!string.IsNullOrEmpty(output))
-	        {
-		        Compression.EncodeStreamAndAppendResponseHeaders(context.Request, context.Response);
-	        }
+            if (MiniProfiler.Settings.EnableCompression && !string.IsNullOrEmpty(output))
+            {
+                Compression.EncodeStreamAndAppendResponseHeaders(context.Request, context.Response);
+            }
 
-			context.Response.Write(output);
+            context.Response.Write(output);
         }
 
         /// <summary>
@@ -197,10 +197,11 @@ namespace StackExchange.Profiling
             return new StringBuilder()
                 .AppendLine("<html><head>")
                 .AppendLine("<title>List of profiling sessions</title>")
-                //.AppendFormat("<script id='mini-profiler' data-ids='' type='text/javascript' src='{0}includes.js?v={1}'></script>{2}", path, MiniProfiler.Settings.Version, Environment.NewLine)
-                //.AppendFormat("<link href='{0}includes.css?v={1}' rel='stylesheet' type='text/css'>{2}", path, MiniProfiler.Settings.Version, Environment.NewLine)
-                //.AppendFormat("<script type='text/javascript'>MiniProfiler.init({{path: '{0}', version: '{1}'}})</script>{2}", path, MiniProfiler.Settings.Version, Environment.NewLine)
-                .AppendLine("</head><body>This function is deprecated and currently not working. Pull Requests for fixing it are welcome.</body></html>")
+                .AppendFormat("<script id='mini-profiler' data-ids='' type='text/javascript' src='{0}includes.js?v={1}'></script>{2}", path, MiniProfiler.Settings.Version, Environment.NewLine)
+                .AppendFormat("<link href='{0}includes.css?v={1}' rel='stylesheet' type='text/css'>{2}", path, MiniProfiler.Settings.Version, Environment.NewLine)
+                .AppendFormat("<script type='text/javascript' src='{0}includes.js?v={1}'></script>{2}", path, MiniProfiler.Settings.Version, Environment.NewLine)
+                .AppendFormat("<script type='text/javascript'>MiniProfiler.list.init({{path: '{0}', version: '{1}'}})</script>{2}", path, MiniProfiler.Settings.Version, Environment.NewLine)
+                .AppendLine("</head></html>")
                 .ToString();
         }
 
@@ -287,7 +288,7 @@ namespace StackExchange.Profiling
             // if this guid is not supplied, the last set of results needs to be
             // displayed. The home page doesn't have profiling otherwise.
             Guid id;
-            if (!Guid.TryParse(context.Request["id"], out id))
+            if (!Guid.TryParse(context.Request["id"], out id) && MiniProfiler.Settings.Storage != null)
                 id = MiniProfiler.Settings.Storage.List(1).FirstOrDefault();
 
             if (id == default(Guid))
